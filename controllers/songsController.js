@@ -1,6 +1,6 @@
 const express = require('express');
 const songs = express.Router();
-const { getAllSongs, getSongById, createSong } = require('../queries/songs');
+const { getAllSongs, getSongById, createSong, updateSong } = require('../queries/songs');
 
 songs.get("/", async (req, res) => {
     try {
@@ -49,5 +49,33 @@ songs.post("/", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 });
+
+// Update Route
+songs.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name, artist, album, duration, is_favorite } = req.body;
+    if (!name || !artist) {
+        return res.status(400).json({ error: "Name and artist are required" });
+    }
+    if (typeof is_favorite !== 'boolean') {
+        return res.status(400).json({ error: "is_favorite must be a boolean" });
+    }
+    if (!duration || typeof duration.minutes !== 'number' || typeof duration.seconds !== 'number') {
+        return res.status(400).json({ error: "Duration must have minutes and seconds as numbers" });
+    }
+    try {
+        const updatedSong = await updateSong(id, { name, artist, album, duration, is_favorite });
+        if (updatedSong) {
+            res.status(200).json(updatedSong);
+        } else {
+            res.status(404).json({ error: "Song not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+module.exports = songs;
+
 
 module.exports = songs;
