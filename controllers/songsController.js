@@ -1,18 +1,21 @@
 const express = require('express');
 const songs = express.Router();
-const { getAllSongs, getSongById, createSong, updateSong } = require('../queries/songs');
+const { getAllSongs, getSongById, createSong, updateSong, deleteSong, reassignIds } = require('../queries/songs');
 
 songs.get("/", async (req, res) => {
     try {
-        const allSongs = await getAllSongs();
+        let allSongs = await getAllSongs();
+        allSongs = allSongs.map((song, index) => ({
+            ...song,
+            display_id: index + 1
+        }));
         if (allSongs.length > 0) {
             res.status(200).json(allSongs);
         } else {
             res.status(404).json({ error: "No songs found" });
         }
     } catch (error) {
-        console.error("Error getting all songs:", error);
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
@@ -75,7 +78,21 @@ songs.put("/:id", async (req, res) => {
     }
 });
 
+// Delete Route
+songs.delete("/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const deletedSong = await deleteSong(id);
+        if (deletedSong) {
+            await reassignIds(); // Reassign IDs after deletion
+            res.status(200).json({ message: "Song deleted successfully", song: deletedSong });
+        } else {
+            res.status(404).json({ error: "Song not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 module.exports = songs;
 
-
-module.exports = songs;

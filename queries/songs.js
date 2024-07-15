@@ -52,10 +52,38 @@ const updateSong = async (id, song) => {
     }
 };
 
+const deleteSong = async (id) => {
+    try {
+        const deletedSong = await db.oneOrNone("DELETE FROM songs WHERE id = $1 RETURNING *", id);
+        return deletedSong;
+    } catch (error) {
+        return error;
+    }
+};
+
+const reassignIds = async () => {
+    try {
+        // Get all songs ordered by the current id
+        const allSongs = await db.any("SELECT * FROM songs ORDER BY id");
+
+        // Reset the id sequence
+        await db.none("ALTER SEQUENCE songs_id_seq RESTART WITH 1");
+
+        // Reassign ids sequentially
+        for (let i = 0; i < allSongs.length; i++) {
+            await db.none("UPDATE songs SET id = $1 WHERE id = $2", [i + 1, allSongs[i].id]);
+        }
+    } catch (error) {
+        return error;
+    }
+};
+
 
 module.exports = {
     getAllSongs,
     getSongById,
     createSong,
-    updateSong
+    updateSong,
+    deleteSong,
+    reassignIds
 };
